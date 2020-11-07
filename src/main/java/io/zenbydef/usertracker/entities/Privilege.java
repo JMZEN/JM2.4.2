@@ -8,16 +8,15 @@ import java.util.Collection;
 @Entity
 @Table(name = "privileges")
 public class Privilege implements GrantedAuthority {
-
     @Id
     @Column(name = "privilege_id")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     @Column(name = "name")
     private String nameOfPrivilege;
 
-    @ManyToMany(mappedBy = "privileges")
+    @ManyToMany(mappedBy = "privileges", fetch = FetchType.EAGER)
     private Collection<Role> roles;
 
     public Privilege() {

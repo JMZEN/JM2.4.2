@@ -2,94 +2,111 @@ package io.zenbydef.usertracker.entities;
 
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
+import javax.persistence.*;
 import java.util.Collection;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class SecurityDetailUser extends User implements UserDetails, CredentialsContainer {
+@Entity
+@Table(name = "security_user_details")
+@Component
+public class SecurityDetailUser implements UserDetails, CredentialsContainer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(name = "security_user_id")
+    private Long id;
+    private String username;
+    private String password;
 
-    private User user;
-    private Boolean accountNonExpired = true;
-    private Boolean accountNonLocked = true;
-    private Boolean credentialsNonExpired = true;
-    private Boolean enabled = true;
+    @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST},
+            fetch = FetchType.EAGER)
+    @JoinTable(name = "users_roles",
+            joinColumns = @JoinColumn(name = "security_user_id", referencedColumnName = "security_user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "role_id"))
+    private Collection<Role> roles;
 
-    public SecurityDetailUser(User user) {
-        this.user = user;
+    public SecurityDetailUser() {
     }
 
-    @Override
+    @Transient
     public Set<GrantedAuthority> getAuthorities() {
-        return user.getAuthorities();
+        return this.roles.stream()
+                .map(Role::getPrivileges)
+                .flatMap(Collection::stream)
+                .map(privilege -> new SimpleGrantedAuthority(privilege.getAuthority()))
+                .collect(Collectors.toSet());
     }
 
-    @Override
     public Long getId() {
-        return super.getId();
+        return id;
     }
 
-    @Override
     public void setId(Long id) {
-        super.setId(id);
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    @Override
-    public void setUsername(String username) {
-        super.setUsername(username);
-    }
-
-    @Override
-    public void setPassword(String password) {
-        super.setPassword(password);
-    }
-
-    @Override
-    public Collection<Role> getRoles() {
-        return super.getRoles();
-    }
-
-    @Override
-    public void setRoles(Collection<Role> roles) {
-        super.setRoles(roles);
+        this.id = id;
     }
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return this.username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Collection<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Collection<Role> roles) {
+        this.roles = roles;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return this.accountNonExpired;
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.accountNonLocked;
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return this.credentialsNonExpired;
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return this.enabled;
+        return true;
     }
 
     @Override
     public void eraseCredentials() {
-        user.setPassword(null);
+        this.password = null;
+    }
+
+    @Override
+    public String toString() {
+        return "SecurityDetailUser{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", roles=" + roles +
+                '}';
     }
 }
